@@ -197,26 +197,6 @@ body {
     opacity: 1;
 }
 
-#mouse.appear {
-    animation:
-        mouseAppear 0.4s ease;
-}
-
-@keyframes mouseAppear {
-
-    0% {
-        transform: scale(0.65);
-    }
-
-    65% {
-        transform: scale(1.08);
-    }
-
-    100% {
-        transform: scale(1);
-    }
-}
-
 /* =========================================
    ОБЛАСТЬ СТАКАНЧИКОВ
 ========================================= */
@@ -557,7 +537,6 @@ body {
 #mouse { width: clamp(42px, 7vw, 95px); z-index: 31; transition: opacity .18s; }
 #questionText { left: 40%; top: 18%; max-width: 94vw; white-space: normal; text-align: center; }
 #nextButton { left: 40%; top: 30%; }
-#roundCounter { position: absolute; left: 20px; top: 20px; padding: 10px 18px; border-radius: 22px; color: #674629; background: #fff9eeeb; font-weight: bold; }
 #restartButton { margin-top: 24px; border: 0; border-radius: 24px; padding: 14px 24px; background: #72bb78; color: white; font-size: 20px; cursor: pointer; }
 #finishScreen:not(.show) { visibility: hidden; }
 @media (max-aspect-ratio: 4/3) {
@@ -571,6 +550,62 @@ body {
   #questionText { top: 7%; }
   #nextButton { top: 23%; }
 }
+
+/* One shared size keeps the running and revealed mouse identical. */
+#game { --mouse-size: clamp(42px, 7vw, 95px); }
+#mouse, .hiddenMouse { width: var(--mouse-size); }
+#instructionPanel {
+    position: absolute;
+    top: clamp(16px, 5vh, 54px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: min(520px, calc(100% - 32px));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    z-index: 120;
+    pointer-events: none;
+}
+#questionText, #questionText.show {
+    position: relative;
+    left: auto; top: auto;
+    transform: none;
+    width: 100%; min-height: 76px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 18px 24px;
+    border: 2px solid #dcc5a2;
+    border-radius: 28px;
+    background: linear-gradient(180deg, #fffaf0, #f6e9d2);
+    box-shadow: 0 5px 0 #c4a77d55, 0 10px 22px #67462924, inset 0 2px 0 #fff;
+    color: #674629;
+    font-size: clamp(20px, 2.4vw, 28px);
+    line-height: 1.25;
+    white-space: normal;
+    text-align: center;
+}
+#questionText.text-changing { opacity: 0; }
+#nextButton, #nextButton.show {
+    position: relative;
+    top: auto; left: auto;
+    transform: none;
+    margin: 0;
+    border: 2px solid #87a36a;
+    padding: 12px 25px;
+    border-radius: 24px;
+    background: linear-gradient(#a5bc82, #829e64);
+    color: #fffdf5;
+    font-size: clamp(18px, 2vw, 23px);
+    box-shadow: 0 4px 0 #627c4940, inset 0 2px 0 #ffffff40;
+}
+#nextButton:not(.show) { visibility: hidden; }
+#nextButton.show { pointer-events: auto; }
+#nextButton:focus-visible { outline: 3px solid #674629; outline-offset: 4px; }
+@media (max-height: 500px) {
+    #instructionPanel { top: 10px; gap: 8px; width: min(460px, calc(100% - 32px)); }
+    #questionText { min-height: 52px; padding: 10px 18px; }
+    #nextButton { padding: 8px 20px; }
+}
 </style>
 </head>
 
@@ -578,10 +613,14 @@ body {
 
 <div id="game">
 
+    <div id="instructionPanel">
     <div id="questionText" role="status" aria-live="polite">
         Где мышка?
     </div>
 
+
+    <button id="nextButton" disabled>Играть дальше</button>
+    </div>
 
     <div id="cat">
 
@@ -613,13 +652,10 @@ body {
     </div>
 
 
-    <div id="roundCounter"></div>
     <div id="cupsArea"></div>
 
 
-    <button id="nextButton">
-        Играть дальше
-    </button>
+
 
 
     <div id="finishScreen">
@@ -653,16 +689,21 @@ const mouse = document.getElementById('mouse');
 const questionText = document.getElementById('questionText');
 const nextButton = document.getElementById('nextButton');
 const finishScreen = document.getElementById('finishScreen');
-const roundCounter = document.getElementById('roundCounter');
 let currentRound = 0;
 let mouseCupID = 0;
 let phase = 'loading';
 let cups = [];
 const positions = [17, 50, 83];
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+let messageTimer;
 function message(text) {
-    questionText.textContent = text;
-    questionText.classList.add('show');
+    clearTimeout(messageTimer);
+    questionText.classList.add('text-changing');
+    messageTimer = setTimeout(() => {
+        questionText.textContent = text;
+        questionText.classList.remove('text-changing');
+        questionText.classList.add('show');
+    }, 180);
 }
 function enableCups(enabled) {
     cups.forEach(cup => cup.disabled = !enabled);
@@ -677,7 +718,7 @@ function createCups() {
         cup.dataset.position = id;
         cup.style.left = positions[id] + '%';
         cup.setAttribute('aria-label', `Стаканчик ${id + 1}`);
-        cup.innerHTML = '<span class="hiddenMouse"><img src="mouse.png" alt="Мышка" draggable="false"></span><span class="cup"><img class="cup-image" src="cups/red-cup.png" alt="" draggable="false"></span>';
+        cup.innerHTML = '<span class="hiddenMouse"><img src="mouse.png" alt="Мышка" draggable="false"></span><span class="cup"><img class="cup-image" src="red-cup.png" alt="" draggable="false"></span>';
         cup.disabled = true;
         cup.addEventListener('click', () => chooseCup(cup));
         cupsArea.append(cup);
@@ -741,7 +782,6 @@ async function startRound() {
     phase = 'hiding';
     nextButton.classList.remove('show');
     nextButton.disabled = true;
-    roundCounter.textContent = `Раунд ${currentRound + 1} из ${TOTAL_ROUNDS}`;
     createCups();
     mouseCupID = Math.floor(Math.random() * 3);
     message('Смотри, куда бежит мышка!');
@@ -792,7 +832,7 @@ document.getElementById('restartButton').addEventListener('click', () => {
     startRound();
 });
 // Decode the sprites before measuring the mouse and starting the first animation.
-Promise.all(['mouse.png', 'cups/red-cup.png'].map(src => {
+Promise.all(['mouse.png', 'red-cup.png'].map(src => {
     const image = new Image();
     image.src = src;
     return image.decode();
