@@ -789,50 +789,34 @@ async function runMouseIntoCup() {
     target.classList.remove('open');
     await wait(450);
 }
-// Only neighbouring cups swap: no path crosses the third cup.
-function makeSwapFrames(distance, height, upperLane) {
-    return Array.from({length: 81}, (_, index) => {
-        const t = index / 80;
-        const progress = t * t * (3 - 2 * t);
-        // Clear the other cup before moving sideways, with rounded corners.
-        const liftProgress = Math.min(t / .14, (1 - t) / .14, 1);
-        const lift = Math.sin(liftProgress * Math.PI / 2);
-        const y = upperLane ? -height * 1.08 * lift : height * .04 * Math.sin(Math.PI * t);
-        return {
-            offset: t,
-            transform: `translate(calc(-50% + ${distance * progress}px), ${y}px)`
-        };
-    });
-}
 async function shuffleCups() {
     message('Следи за стаканчиками!');
-    const initialPosition = Number(cups[mouseCupID].dataset.position);
-    // The first swap always includes the mouse; alternating pairs moves all cups.
-    let pair = initialPosition === 0 ? 0 : initialPosition === 2 ? 1 : Math.floor(Math.random() * 2);
-    const steps = 5 + Math.floor(Math.random() * 2);
-    for (let step = 0; step < steps; step++) {
-        const a = cups.find(cup => Number(cup.dataset.position) === pair);
-        const b = cups.find(cup => Number(cup.dataset.position) === pair + 1);
+    for (let step = 0; step < 5; step++) {
+        // Keep the original random swaps, including the mouse in the first one.
+        const first = step === 0 ? mouseCupID : Math.floor(Math.random() * 3);
+        const second = (first + 1 + Math.floor(Math.random() * 2)) % 3;
+        const a = cups[first], b = cups[second];
         const pa = Number(a.dataset.position), pb = Number(b.dataset.position);
-        const distance = cupsArea.getBoundingClientRect().width * (positions[pb] - positions[pa]) / 100;
-        const height = Math.max(a.getBoundingClientRect().height, b.getBoundingClientRect().height);
-        const aAbove = Math.random() < .5;
-        a.style.zIndex = aAbove ? '1' : '2';
-        b.style.zIndex = aAbove ? '2' : '1';
-        const duration = Math.max(1050, 1400 - currentRound * 25);
-        const animations = [
-            a.animate(makeSwapFrames(distance, height, aAbove), {duration, easing: 'linear', fill: 'forwards'}),
-            b.animate(makeSwapFrames(-distance, height, !aAbove), {duration, easing: 'linear', fill: 'forwards'})
-        ];
+        a.style.zIndex = '2';
+        b.style.zIndex = '1';
+        const duration = Math.max(580, 950 - currentRound * 35);
+        const animations = [[a, pa, pb, -14], [b, pb, pa, 14]].map(([cup, from, to, arc]) =>
+            cup.animate([
+                {left: positions[from] + '%', transform: 'translate(-50%, 0)'},
+                {left: (positions[from] + positions[to]) / 2 + '%', transform: `translate(-50%, ${arc}%)`},
+                {left: positions[to] + '%', transform: 'translate(-50%, 0)'}
+            ], {duration, easing: 'ease-in-out', fill: 'forwards'})
+        );
         await Promise.all(animations.map(animation => animation.finished));
-        // Commit both final positions before removing the animation, in the same frame.
+        // Hold the final frame until BOTH stored positions are updated.
+        // Otherwise a finished animation can briefly show the old position.
         a.dataset.position = pb;
         b.dataset.position = pa;
         a.style.left = positions[pb] + '%';
         b.style.left = positions[pa] + '%';
         animations.forEach(animation => animation.cancel());
         a.style.zIndex = b.style.zIndex = '';
-        pair = 1 - pair;
+        await wait(180);
     }
     cups.forEach(cup => cup.setAttribute('aria-label', `Стаканчик ${Number(cup.dataset.position) + 1}`));
 }
