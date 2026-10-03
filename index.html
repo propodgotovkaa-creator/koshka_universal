@@ -552,7 +552,7 @@ body {
 }
 
 /* One shared size keeps the running and revealed mouse identical. */
-#game { --mouse-size: clamp(42px, 7vw, 95px); }
+#game { --mouse-size: clamp(48px, 8vw, 108px); }
 #mouse, .hiddenMouse { width: var(--mouse-size); }
 #instructionPanel {
     position: absolute;
@@ -606,6 +606,36 @@ body {
     #questionText { min-height: 52px; padding: 10px 18px; }
     #nextButton { padding: 8px 20px; }
 }
+
+#mouse { transition: none; }
+#mouse.inside-cup { z-index: 3; }
+#rulesDialog {
+    position: fixed; inset: 0; margin: auto;
+    width: min(580px, calc(100vw - 36px));
+    max-height: calc(100dvh - 36px); overflow: auto;
+    border: 2px solid #dcc5a2; border-radius: 30px;
+    padding: clamp(24px, 5vw, 42px);
+    background: linear-gradient(180deg, #fffaf0, #f6e9d2);
+    box-shadow: 0 18px 60px #67462940, inset 0 2px 0 white;
+    color: #674629; text-align: center;
+}
+#rulesDialog[open] { animation: rulesArrival .5s cubic-bezier(.2,.8,.3,1); }
+#rulesDialog::backdrop { background: #50372855; backdrop-filter: blur(3px); }
+#rulesDialog h2 { font-size: clamp(26px, 4vw, 34px); margin-bottom: 20px; }
+#rulesDialog p { font-size: clamp(20px, 2.6vw, 25px); line-height: 1.5; }
+#startButton {
+    margin-top: 26px; padding: 14px 28px; border: 2px solid #87a36a;
+    border-radius: 24px; background: linear-gradient(#a5bc82, #829e64);
+    color: #fffdf5; font-size: 22px; font-weight: bold; cursor: pointer;
+    box-shadow: 0 4px 0 #627c4940, inset 0 2px 0 #ffffff40;
+}
+#startButton:disabled { opacity: .65; cursor: wait; }
+#startButton:focus-visible { outline: 3px solid #674629; outline-offset: 4px; }
+@keyframes rulesArrival {
+    from { opacity: 0; transform: translateY(35px) scale(.94); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) { #rulesDialog[open] { animation: none; } }
 </style>
 </head>
 
@@ -681,6 +711,11 @@ body {
 </div>
 
 
+<dialog id="rulesDialog" aria-labelledby="rulesTitle" aria-describedby="rulesText">
+    <h2 id="rulesTitle">Как играть?</h2>
+    <p id="rulesText">Помоги кошке найти мышку. Пока стаканчики перемешиваются, проговаривай любую цепочку слогов.</p>
+    <button id="startButton" type="button" disabled>Загружаем рисунки…</button>
+</dialog>
 <script>
 const TOTAL_ROUNDS = 10;
 const game = document.getElementById('game');
@@ -718,7 +753,7 @@ function createCups() {
         cup.dataset.position = id;
         cup.style.left = positions[id] + '%';
         cup.setAttribute('aria-label', `Стаканчик ${id + 1}`);
-        cup.innerHTML = '<span class="hiddenMouse"><img src="mouse.png" alt="Мышка" draggable="false"></span><span class="cup"><img class="cup-image" src="red-cup.png" alt="" draggable="false"></span>';
+        cup.innerHTML = '<span class="cup"><img class="cup-image" src="red-cup.png" alt="" draggable="false"></span>';
         cup.disabled = true;
         cup.addEventListener('click', () => chooseCup(cup));
         cupsArea.append(cup);
@@ -742,13 +777,17 @@ async function runMouseIntoCup() {
         {transform: `translateX(${endX}px)`}
     ], {duration: 1400, easing: 'ease-in-out', fill: 'forwards'});
     await run.finished;
-    target.classList.add('correct');
-    mouse.classList.remove('visible');
-    await wait(180);
+    // Keep the SAME visible sprite: move it into the cup's stacking context
+    // in one frame, with no opacity cross-fade or second image to decode.
+    target.append(mouse);
+    mouse.classList.add('inside-cup');
+    mouse.style.left = '50%';
+    mouse.style.top = 'auto';
+    mouse.style.bottom = '12%';
+    mouse.style.transform = 'translateX(-50%)';
     run.cancel();
     target.classList.remove('open');
     await wait(450);
-    target.classList.remove('correct');
 }
 async function shuffleCups() {
     message('Следи за стаканчиками!');
@@ -782,6 +821,10 @@ async function startRound() {
     phase = 'hiding';
     nextButton.classList.remove('show');
     nextButton.disabled = true;
+    mouse.classList.remove('visible', 'inside-cup');
+    game.append(mouse);
+    mouse.style.bottom = 'auto';
+    mouse.style.transform = '';
     createCups();
     mouseCupID = Math.floor(Math.random() * 3);
     message('Смотри, куда бежит мышка!');
@@ -831,12 +874,31 @@ document.getElementById('restartButton').addEventListener('click', () => {
     currentRound = 0;
     startRound();
 });
-// Decode the sprites before measuring the mouse and starting the first animation.
+const rulesDialog = document.getElementById('rulesDialog');
+const startButton = document.getElementById('startButton');
+rulesDialog.addEventListener('cancel', event => event.preventDefault());
+rulesDialog.showModal();
+startButton.addEventListener('click', () => {
+    if (phase !== 'ready') return;
+    startButton.disabled = true;
+    rulesDialog.close();
+    startRound();
+});
+// Load images while the rules are visible; start only after the player clicks.
 Promise.all(['mouse.png', 'red-cup.png'].map(src => {
     const image = new Image();
     image.src = src;
     return image.decode();
-})).then(startRound).catch(() => message('Не удалось загрузить рисунки. Обнови страницу.'));
+})).then(() => {
+    phase = 'ready';
+    createCups();
+    startButton.disabled = false;
+    startButton.textContent = 'Начать игру';
+    startButton.focus();
+}).catch(() => {
+    startButton.textContent = 'Обнови страницу';
+    document.getElementById('rulesText').textContent = 'Не удалось загрузить рисунки. Обнови страницу, чтобы попробовать ещё раз.';
+});
 </script>
 
 </body>
