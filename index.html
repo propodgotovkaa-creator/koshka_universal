@@ -791,32 +791,75 @@ async function runMouseIntoCup() {
 }
 async function shuffleCups() {
     message('Следи за стаканчиками!');
-    for (let step = 0; step < 5; step++) {
-        const first = Math.floor(Math.random() * 3);
-        const second = (first + 1 + Math.floor(Math.random() * 2)) % 3;
-        const a = cups[first], b = cups[second];
-        const pa = Number(a.dataset.position), pb = Number(b.dataset.position);
-        a.style.zIndex = '2';
-        b.style.zIndex = '1';
-        const duration = Math.max(580, 950 - currentRound * 35);
-        const animations = [[a, pa, pb, -14], [b, pb, pa, 14]].map(([cup, from, to, arc]) =>
-            cup.animate([
-                {left: positions[from] + '%', transform: 'translate(-50%, 0)'},
-                {left: (positions[from] + positions[to]) / 2 + '%', transform: `translate(-50%, ${arc}%)`},
-                {left: positions[to] + '%', transform: 'translate(-50%, 0)'}
-            ], {duration, easing: 'ease-in-out'})
-        );
-        await Promise.all(animations.map(animation => animation.finished));
-        a.dataset.position = pb;
-        b.dataset.position = pa;
-        a.style.left = positions[pb] + '%';
-        b.style.left = positions[pa] + '%';
-        animations.forEach(animation => animation.cancel());
-        a.style.zIndex = b.style.zIndex = '';
-        await wait(180);
+
+    let previousPair = -1;
+
+    for (let step = 0; step < 6; step++) {
+        // Меняем только соседние стаканчики: левый-средний или средний-правый.
+        let pair = Math.floor(Math.random() * 2);
+        if (pair === previousPair) pair = 1 - pair;
+        previousPair = pair;
+
+        const leftPosition = pair;
+        const rightPosition = pair + 1;
+
+        // Ищем стаканчики именно по их текущему месту, а не по исходному id.
+        const a = cups.find(cup => Number(cup.dataset.position) === leftPosition);
+        const b = cups.find(cup => Number(cup.dataset.position) === rightPosition);
+
+        const duration = Math.max(620, 920 - currentRound * 25);
+
+        // Один проходит выше, другой ниже. Поэтому они не сталкиваются.
+        a.style.zIndex = '3';
+        b.style.zIndex = '2';
+
+        const fromA = positions[leftPosition];
+        const toA = positions[rightPosition];
+        const fromB = positions[rightPosition];
+        const toB = positions[leftPosition];
+
+        const animationA = a.animate([
+            { left: fromA + '%', transform: 'translate(-50%, 0) scale(1)' },
+            { left: ((fromA + toA) / 2) + '%', transform: 'translate(-50%, -24%) scale(1.03)' },
+            { left: toA + '%', transform: 'translate(-50%, 0) scale(1)' }
+        ], {
+            duration,
+            easing: 'cubic-bezier(.45,.05,.55,.95)',
+            fill: 'forwards'
+        });
+
+        const animationB = b.animate([
+            { left: fromB + '%', transform: 'translate(-50%, 0) scale(1)' },
+            { left: ((fromB + toB) / 2) + '%', transform: 'translate(-50%, 24%) scale(.97)' },
+            { left: toB + '%', transform: 'translate(-50%, 0) scale(1)' }
+        ], {
+            duration,
+            easing: 'cubic-bezier(.45,.05,.55,.95)',
+            fill: 'forwards'
+        });
+
+        await Promise.all([animationA.finished, animationB.finished]);
+
+        a.dataset.position = rightPosition;
+        b.dataset.position = leftPosition;
+
+        a.style.left = positions[rightPosition] + '%';
+        b.style.left = positions[leftPosition] + '%';
+
+        animationA.cancel();
+        animationB.cancel();
+
+        a.style.zIndex = '';
+        b.style.zIndex = '';
+
+        await wait(120);
     }
-    cups.forEach(cup => cup.setAttribute('aria-label', `Стаканчик ${Number(cup.dataset.position) + 1}`));
+
+    cups.forEach(cup =>
+        cup.setAttribute('aria-label', `Стаканчик ${Number(cup.dataset.position) + 1}`)
+    );
 }
+
 async function startRound() {
     phase = 'hiding';
     nextButton.classList.remove('show');
