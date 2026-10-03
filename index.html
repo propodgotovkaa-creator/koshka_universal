@@ -789,77 +789,53 @@ async function runMouseIntoCup() {
     target.classList.remove('open');
     await wait(450);
 }
+// Only neighbouring cups swap: no path crosses the third cup.
+function makeSwapFrames(distance, height, upperLane) {
+    return Array.from({length: 81}, (_, index) => {
+        const t = index / 80;
+        const progress = t * t * (3 - 2 * t);
+        // Clear the other cup before moving sideways, with rounded corners.
+        const liftProgress = Math.min(t / .14, (1 - t) / .14, 1);
+        const lift = Math.sin(liftProgress * Math.PI / 2);
+        const y = upperLane ? -height * 1.08 * lift : height * .04 * Math.sin(Math.PI * t);
+        return {
+            offset: t,
+            transform: `translate(calc(-50% + ${distance * progress}px), ${y}px)`
+        };
+    });
+}
 async function shuffleCups() {
     message('Следи за стаканчиками!');
-
-    let previousPair = -1;
-
-    for (let step = 0; step < 6; step++) {
-        // Меняем только соседние стаканчики: левый-средний или средний-правый.
-        let pair = Math.floor(Math.random() * 2);
-        if (pair === previousPair) pair = 1 - pair;
-        previousPair = pair;
-
-        const leftPosition = pair;
-        const rightPosition = pair + 1;
-
-        // Ищем стаканчики именно по их текущему месту, а не по исходному id.
-        const a = cups.find(cup => Number(cup.dataset.position) === leftPosition);
-        const b = cups.find(cup => Number(cup.dataset.position) === rightPosition);
-
-        const duration = Math.max(620, 920 - currentRound * 25);
-
-        // Один проходит выше, другой ниже. Поэтому они не сталкиваются.
-        a.style.zIndex = '3';
-        b.style.zIndex = '2';
-
-        const fromA = positions[leftPosition];
-        const toA = positions[rightPosition];
-        const fromB = positions[rightPosition];
-        const toB = positions[leftPosition];
-
-        const animationA = a.animate([
-            { left: fromA + '%', transform: 'translate(-50%, 0) scale(1)' },
-            { left: ((fromA + toA) / 2) + '%', transform: 'translate(-50%, -24%) scale(1.03)' },
-            { left: toA + '%', transform: 'translate(-50%, 0) scale(1)' }
-        ], {
-            duration,
-            easing: 'cubic-bezier(.45,.05,.55,.95)',
-            fill: 'forwards'
-        });
-
-        const animationB = b.animate([
-            { left: fromB + '%', transform: 'translate(-50%, 0) scale(1)' },
-            { left: ((fromB + toB) / 2) + '%', transform: 'translate(-50%, 24%) scale(.97)' },
-            { left: toB + '%', transform: 'translate(-50%, 0) scale(1)' }
-        ], {
-            duration,
-            easing: 'cubic-bezier(.45,.05,.55,.95)',
-            fill: 'forwards'
-        });
-
-        await Promise.all([animationA.finished, animationB.finished]);
-
-        a.dataset.position = rightPosition;
-        b.dataset.position = leftPosition;
-
-        a.style.left = positions[rightPosition] + '%';
-        b.style.left = positions[leftPosition] + '%';
-
-        animationA.cancel();
-        animationB.cancel();
-
-        a.style.zIndex = '';
-        b.style.zIndex = '';
-
-        await wait(120);
+    const initialPosition = Number(cups[mouseCupID].dataset.position);
+    // The first swap always includes the mouse; alternating pairs moves all cups.
+    let pair = initialPosition === 0 ? 0 : initialPosition === 2 ? 1 : Math.floor(Math.random() * 2);
+    const steps = 5 + Math.floor(Math.random() * 2);
+    for (let step = 0; step < steps; step++) {
+        const a = cups.find(cup => Number(cup.dataset.position) === pair);
+        const b = cups.find(cup => Number(cup.dataset.position) === pair + 1);
+        const pa = Number(a.dataset.position), pb = Number(b.dataset.position);
+        const distance = cupsArea.getBoundingClientRect().width * (positions[pb] - positions[pa]) / 100;
+        const height = Math.max(a.getBoundingClientRect().height, b.getBoundingClientRect().height);
+        const aAbove = Math.random() < .5;
+        a.style.zIndex = aAbove ? '1' : '2';
+        b.style.zIndex = aAbove ? '2' : '1';
+        const duration = Math.max(1050, 1400 - currentRound * 25);
+        const animations = [
+            a.animate(makeSwapFrames(distance, height, aAbove), {duration, easing: 'linear', fill: 'forwards'}),
+            b.animate(makeSwapFrames(-distance, height, !aAbove), {duration, easing: 'linear', fill: 'forwards'})
+        ];
+        await Promise.all(animations.map(animation => animation.finished));
+        // Commit both final positions before removing the animation, in the same frame.
+        a.dataset.position = pb;
+        b.dataset.position = pa;
+        a.style.left = positions[pb] + '%';
+        b.style.left = positions[pa] + '%';
+        animations.forEach(animation => animation.cancel());
+        a.style.zIndex = b.style.zIndex = '';
+        pair = 1 - pair;
     }
-
-    cups.forEach(cup =>
-        cup.setAttribute('aria-label', `Стаканчик ${Number(cup.dataset.position) + 1}`)
-    );
+    cups.forEach(cup => cup.setAttribute('aria-label', `Стаканчик ${Number(cup.dataset.position) + 1}`));
 }
-
 async function startRound() {
     phase = 'hiding';
     nextButton.classList.remove('show');
