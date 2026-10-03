@@ -218,10 +218,10 @@ body {
 }
 
 /* =========================================
-   ОБЛАСТЬ ШАПОК
+   ОБЛАСТЬ СТАКАНЧИКОВ
 ========================================= */
 
-#hatsArea {
+#cupsArea {
     position: absolute;
 
     left: 50%;
@@ -236,10 +236,10 @@ body {
 }
 
 /* =========================================
-   ОДНА ШАПКА
+   ОДИН СТАКАНЧИК
 ========================================= */
 
-.hat-slot {
+.cup-slot {
     position: absolute;
 
     width: clamp(145px, 16vw, 205px);
@@ -250,7 +250,7 @@ body {
     cursor: pointer;
 }
 
-.hat {
+.cup {
     position: absolute;
 
     left: 0;
@@ -265,7 +265,7 @@ body {
         cubic-bezier(.3,.8,.3,1);
 }
 
-.hat-image {
+.cup-image {
     display: block;
 
     width: 100%;
@@ -295,7 +295,7 @@ body {
 }
 
 /* =========================================
-   МЫШКА ПОД ШАПКОЙ
+   МЫШКА ПОД СТАКАНЧИКОМ
 ========================================= */
 
 .hiddenMouse {
@@ -323,17 +323,17 @@ body {
     height: auto;
 }
 
-.hat-slot.open .hat {
+.cup-slot.open .cup {
     transform:
         translateY(-118px);
 }
 
-.position-1.open .hat {
+.position-1.open .cup {
     transform:
         translateY(-118px);
 }
 
-.hat-slot.correct .hiddenMouse {
+.cup-slot.correct .hiddenMouse {
     opacity: 1;
 }
 
@@ -388,72 +388,6 @@ body {
     transform:
         translateX(-50%)
         scale(1);
-}
-
-/* =========================================
-   ШТОРКИ
-========================================= */
-
-#curtain {
-    position: absolute;
-
-    inset: 0;
-
-    z-index: 400;
-
-    pointer-events: none;
-
-    overflow: hidden;
-}
-
-.curtainSide {
-    position: absolute;
-
-    top: 0;
-
-    width: 51%;
-    height: 100%;
-
-    background:
-        repeating-linear-gradient(
-            90deg,
-            #c9574f 0px,
-            #d9685e 45px,
-            #b94440 90px,
-            #d9685e 135px
-        );
-
-    box-shadow:
-        inset 0 0 40px
-        rgba(90,25,20,0.25);
-
-    transition:
-        transform 0.72s
-        cubic-bezier(.65,0,.35,1);
-}
-
-#curtainLeft {
-    left: 0;
-
-    transform:
-        translateX(-101%);
-}
-
-#curtainRight {
-    right: 0;
-
-    transform:
-        translateX(101%);
-}
-
-#curtain.closed #curtainLeft {
-    transform:
-        translateX(0);
-}
-
-#curtain.closed #curtainRight {
-    transform:
-        translateX(0);
 }
 
 /* =========================================
@@ -568,12 +502,12 @@ body {
         bottom: 11%;
     }
 
-    #hatsArea {
+    #cupsArea {
         width: 78vw;
         bottom: 9%;
     }
 
-    .hat-slot {
+    .cup-slot {
         width: clamp(130px, 21vw, 180px);
     }
 
@@ -594,7 +528,7 @@ body {
 
 @media (min-aspect-ratio: 16/9) {
 
-    #hatsArea {
+    #cupsArea {
         width: min(58vw, 900px);
         bottom: 9%;
     }
@@ -612,6 +546,31 @@ body {
     }
 }
 
+
+/* Responsive cup positions use percentages so resizing preserves the shuffle. */
+#cupsArea { left: 40%; width: min(70vw, 950px); height: 40vh; bottom: 9%; }
+.cup-slot { width: 29%; height: auto; aspect-ratio: 1 / 1.2; transform: translateX(-50%); border: 0; padding: 0; background: transparent; color: inherit; }
+.cup-slot:disabled { cursor: default; }
+.cup-slot:focus-visible { outline: 3px solid #674629; outline-offset: 5px; border-radius: 20px; }
+.cup-slot.open .cup { transform: translateY(-105%); }
+.hiddenMouse { width: 48%; bottom: 12%; }
+#mouse { width: clamp(42px, 7vw, 95px); z-index: 31; transition: opacity .18s; }
+#questionText { left: 40%; top: 18%; max-width: 94vw; white-space: normal; text-align: center; }
+#nextButton { left: 40%; top: 30%; }
+#roundCounter { position: absolute; left: 20px; top: 20px; padding: 10px 18px; border-radius: 22px; color: #674629; background: #fff9eeeb; font-weight: bold; }
+#restartButton { margin-top: 24px; border: 0; border-radius: 24px; padding: 14px 24px; background: #72bb78; color: white; font-size: 20px; cursor: pointer; }
+#finishScreen:not(.show) { visibility: hidden; }
+@media (max-aspect-ratio: 4/3) {
+  #cupsArea { left: 50%; width: 96vw; bottom: 12%; }
+  #cat { bottom: 42%; width: 27vw; }
+  #questionText, #nextButton { left: 50%; }
+  .finishCard { padding: 28px 20px; }
+}
+@media (max-height: 500px) and (min-aspect-ratio: 4/3) {
+  #cupsArea { width: min(60vw, 95vh); }
+  #questionText { top: 7%; }
+  #nextButton { top: 23%; }
+}
 </style>
 </head>
 
@@ -619,8 +578,8 @@ body {
 
 <div id="game">
 
-    <div id="questionText">
-        Где спряталась мышка?
+    <div id="questionText" role="status" aria-live="polite">
+        Где мышка?
     </div>
 
 
@@ -654,27 +613,13 @@ body {
     </div>
 
 
-    <div id="hatsArea"></div>
+    <div id="roundCounter"></div>
+    <div id="cupsArea"></div>
 
 
     <button id="nextButton">
         Играть дальше
     </button>
-
-
-    <div id="curtain">
-
-        <div
-            id="curtainLeft"
-            class="curtainSide">
-        </div>
-
-        <div
-            id="curtainRight"
-            class="curtainSide">
-        </div>
-
-    </div>
 
 
     <div id="finishScreen">
@@ -690,9 +635,9 @@ body {
             </h1>
 
             <p>
-                Приходите ещё!
+                Все 10 раундов пройдены!
             </p>
-
+            <button id="restartButton">Играть ещё раз</button>
         </div>
 
     </div>
@@ -701,624 +646,157 @@ body {
 
 
 <script>
-
-/* =========================================
-   КОМПЛЕКТЫ ШАПОК
-========================================= */
-
-const hatSets = [
-
-    [
-        "hats/hat-red-chess-v2.png",
-        "hats/hat-1-car.png",
-        "hats/hat-red-shower-v3.png"
-    ],
-
-    [
-        "hats/cherry.png",
-        "hats/puck.png",
-        "hats/bear.png"
-    ],
-
-    [
-        "hats/frog.png",
-        "hats/tire.png",
-        "hats/bag.png"
-    ],
-
-    [
-        "hats/coat.png",
-        "hats/rooster.png",
-        "hats/chocolate.png"
-    ],
-
-    [
-        "hats/cone.png",
-        "hats/baby.png",
-        "hats/horse.png"
-    ]
-
-];
-
 const TOTAL_ROUNDS = 10;
-
-
-/* =========================================
-   ЭЛЕМЕНТЫ
-========================================= */
-
-const game =
-    document.getElementById(
-        "game"
-    );
-
-const hatsArea =
-    document.getElementById(
-        "hatsArea"
-    );
-
-const mouse =
-    document.getElementById(
-        "mouse"
-    );
-
-const nextButton =
-    document.getElementById(
-        "nextButton"
-    );
-
-const questionText =
-    document.getElementById(
-        "questionText"
-    );
-
-const finishScreen =
-    document.getElementById(
-        "finishScreen"
-    );
-
-const curtain =
-    document.getElementById(
-        "curtain"
-    );
-
-
-/* =========================================
-   СОСТОЯНИЕ
-========================================= */
-
+const game = document.getElementById('game');
+const cupsArea = document.getElementById('cupsArea');
+const mouse = document.getElementById('mouse');
+const questionText = document.getElementById('questionText');
+const nextButton = document.getElementById('nextButton');
+const finishScreen = document.getElementById('finishScreen');
+const roundCounter = document.getElementById('roundCounter');
 let currentRound = 0;
-
-let mouseHatID = 0;
-
-let canChoose = false;
-
-let roundSolved = false;
-
-let hats = [];
-
-
-/* =========================================
-   ПАУЗА
-========================================= */
-
-function wait(ms) {
-
-    return new Promise(
-        resolve =>
-            setTimeout(
-                resolve,
-                ms
-            )
-    );
-
+let mouseCupID = 0;
+let phase = 'loading';
+let cups = [];
+const positions = [17, 50, 83];
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+function message(text) {
+    questionText.textContent = text;
+    questionText.classList.add('show');
 }
-
-
-/* =========================================
-   КОМПЛЕКТ ДЛЯ РАУНДА
-========================================= */
-
-function getCurrentHatSet() {
-
-    const setIndex =
-        Math.floor(
-            currentRound / 2
+function enableCups(enabled) {
+    cups.forEach(cup => cup.disabled = !enabled);
+}
+function createCups() {
+    cupsArea.replaceChildren();
+    cups = Array.from({length: 3}, (_, id) => {
+        const cup = document.createElement('button');
+        cup.type = 'button';
+        cup.className = 'cup-slot';
+        cup.dataset.id = id;
+        cup.dataset.position = id;
+        cup.style.left = positions[id] + '%';
+        cup.setAttribute('aria-label', `Стаканчик ${id + 1}`);
+        cup.innerHTML = '<span class="hiddenMouse"><img src="mouse.png" alt="Мышка" draggable="false"></span><span class="cup"><img class="cup-image" src="cups/red-cup.png" alt="" draggable="false"></span>';
+        cup.disabled = true;
+        cup.addEventListener('click', () => chooseCup(cup));
+        cupsArea.append(cup);
+        return cup;
+    });
+}
+async function runMouseIntoCup() {
+    const target = cups[mouseCupID];
+    target.classList.add('open');
+    await wait(450);
+    const field = game.getBoundingClientRect();
+    const rect = target.getBoundingClientRect();
+    const startX = -mouse.offsetWidth;
+    const endX = rect.left - field.left + rect.width / 2 - mouse.offsetWidth / 2;
+    const endY = rect.bottom - field.top - mouse.offsetHeight - rect.height * .12;
+    mouse.style.left = '0px';
+    mouse.style.top = endY + 'px';
+    mouse.classList.add('visible');
+    const run = mouse.animate([
+        {transform: `translateX(${startX}px)`},
+        {transform: `translateX(${endX}px)`}
+    ], {duration: 1400, easing: 'ease-in-out', fill: 'forwards'});
+    await run.finished;
+    target.classList.add('correct');
+    mouse.classList.remove('visible');
+    await wait(180);
+    run.cancel();
+    target.classList.remove('open');
+    await wait(450);
+    target.classList.remove('correct');
+}
+async function shuffleCups() {
+    message('Следи за стаканчиками!');
+    for (let step = 0; step < 5; step++) {
+        const first = Math.floor(Math.random() * 3);
+        const second = (first + 1 + Math.floor(Math.random() * 2)) % 3;
+        const a = cups[first], b = cups[second];
+        const pa = Number(a.dataset.position), pb = Number(b.dataset.position);
+        a.style.zIndex = '2';
+        b.style.zIndex = '1';
+        const duration = Math.max(580, 950 - currentRound * 35);
+        const animations = [[a, pa, pb, -14], [b, pb, pa, 14]].map(([cup, from, to, arc]) =>
+            cup.animate([
+                {left: positions[from] + '%', transform: 'translate(-50%, 0)'},
+                {left: (positions[from] + positions[to]) / 2 + '%', transform: `translate(-50%, ${arc}%)`},
+                {left: positions[to] + '%', transform: 'translate(-50%, 0)'}
+            ], {duration, easing: 'ease-in-out'})
         );
-
-
-    return hatSets[
-        setIndex
-    ];
-
+        await Promise.all(animations.map(animation => animation.finished));
+        a.dataset.position = pb;
+        b.dataset.position = pa;
+        a.style.left = positions[pb] + '%';
+        b.style.left = positions[pa] + '%';
+        animations.forEach(animation => animation.cancel());
+        a.style.zIndex = b.style.zIndex = '';
+        await wait(180);
+    }
+    cups.forEach(cup => cup.setAttribute('aria-label', `Стаканчик ${Number(cup.dataset.position) + 1}`));
 }
-
-
-/* =========================================
-   РАНДОМНАЯ ПОЗИЦИЯ МЫШКИ
-========================================= */
-
-function chooseRandomMouseHat() {
-
-    return Math.floor(
-        Math.random() * 3
-    );
-
-}
-
-
-/* =========================================
-   СОЗДАЁМ ШАПКИ
-========================================= */
-
-function createHats() {
-
-    hatsArea.innerHTML =
-        "";
-
-
-    const currentSet =
-        getCurrentHatSet();
-
-
-    currentSet.forEach(
-        (imagePath, index) => {
-
-            const slot =
-                document.createElement(
-                    "div"
-                );
-
-
-            slot.className =
-                `hat-slot position-${index}`;
-
-
-            slot.dataset.id =
-                index;
-
-
-            /* мышка */
-
-            const hiddenMouse =
-                document.createElement(
-                    "div"
-                );
-
-
-            hiddenMouse.className =
-                "hiddenMouse";
-
-
-            const hiddenMouseImage =
-                document.createElement(
-                    "img"
-                );
-
-
-            hiddenMouseImage.src =
-                "mouse.png";
-
-
-            hiddenMouseImage.draggable =
-                false;
-
-
-            hiddenMouse.appendChild(
-                hiddenMouseImage
-            );
-
-
-            /* шапка */
-
-            const hat =
-                document.createElement(
-                    "div"
-                );
-
-
-            hat.className =
-                "hat";
-
-
-            const hatImage =
-                document.createElement(
-                    "img"
-                );
-
-
-            hatImage.src =
-                imagePath;
-
-
-            hatImage.className =
-                "hat-image";
-
-
-            hatImage.draggable =
-                false;
-
-
-            hat.appendChild(
-                hatImage
-            );
-
-
-            slot.appendChild(
-                hiddenMouse
-            );
-
-
-            slot.appendChild(
-                hat
-            );
-
-
-            hatsArea.appendChild(
-                slot
-            );
-
-        }
-    );
-
-
-    hats =
-        [
-            ...document.querySelectorAll(
-                ".hat-slot"
-            )
-        ];
-
-
-    hats.forEach(
-        hat => {
-
-            hat.addEventListener(
-                "click",
-                () =>
-                    chooseHat(hat)
-            );
-
-        }
-    );
-
-}
-
-
-/* =========================================
-   МЫШКА НА ПОДУШКЕ
-========================================= */
-
-async function showMouseBeforeRound() {
-
-    const gameRect =
-        game.getBoundingClientRect();
-
-
-    mouse.style.left =
-        (
-            gameRect.width *
-            0.14
-        ) + "px";
-
-
-    mouse.style.top =
-        (
-            gameRect.height *
-            0.61
-        ) + "px";
-
-
-    mouse.classList.add(
-        "visible",
-        "appear"
-    );
-
-
-    await wait(
-        400
-    );
-
-
-    mouse.classList.remove(
-        "appear"
-    );
-
-
-    await wait(
-        1100
-    );
-
-}
-
-
-/* =========================================
-   ШТОРКА
-========================================= */
-
-async function closeCurtain() {
-
-    curtain.classList.add(
-        "closed"
-    );
-
-
-    await wait(
-        760
-    );
-
-}
-
-
-async function openCurtain() {
-
-    curtain.classList.remove(
-        "closed"
-    );
-
-
-    await wait(
-        760
-    );
-
-}
-
-
-/* =========================================
-   ПРЯЧЕМ МЫШКУ
-========================================= */
-
-function hideMouseBehindCurtain() {
-
-    mouse.classList.remove(
-        "visible",
-        "appear"
-    );
-
-}
-
-
-/* =========================================
-   СТАРТ РАУНДА
-========================================= */
-
 async function startRound() {
-
-    canChoose =
-        false;
-
-
-    roundSolved =
-        false;
-
-
-    questionText
-        .classList
-        .remove(
-            "show"
-        );
-
-
-    nextButton
-        .classList
-        .remove(
-            "show"
-        );
-
-
-    createHats();
-
-
-    mouseHatID =
-        chooseRandomMouseHat();
-
-
-    await wait(
-        500
-    );
-
-
-    /* Мышка появляется */
-
-    await showMouseBeforeRound();
-
-
-    /* Закрываем экран */
-
-    await closeCurtain();
-
-
-    /* Мышка исчезает */
-
-    hideMouseBehindCurtain();
-
-
-    await wait(
-        300
-    );
-
-
-    /* Открываем */
-
-    await openCurtain();
-
-
-    /* Показываем вопрос */
-
-    questionText
-        .classList
-        .add(
-            "show"
-        );
-
-
-    await wait(
-        900
-    );
-
-
-    questionText
-        .classList
-        .remove(
-            "show"
-        );
-
-
-    await wait(
-        150
-    );
-
-
-    canChoose =
-        true;
-
+    phase = 'hiding';
+    nextButton.classList.remove('show');
+    nextButton.disabled = true;
+    roundCounter.textContent = `Раунд ${currentRound + 1} из ${TOTAL_ROUNDS}`;
+    createCups();
+    mouseCupID = Math.floor(Math.random() * 3);
+    message('Смотри, куда бежит мышка!');
+    await wait(500);
+    await runMouseIntoCup();
+    phase = 'shuffling';
+    await shuffleCups();
+    phase = 'choosing';
+    message('Где мышка?');
+    enableCups(true);
 }
-
-
-/* =========================================
-   ВЫБОР ШАПКИ
-========================================= */
-
-async function chooseHat(hat) {
-
-    if (!canChoose) {
+async function chooseCup(cup) {
+    if (phase !== 'choosing') return;
+    phase = 'revealing';
+    enableCups(false);
+    cup.classList.add('open');
+    if (Number(cup.dataset.id) !== mouseCupID) {
+        message('Здесь пусто. Попробуй ещё!');
+        await wait(1000);
+        cup.classList.remove('open');
+        await wait(450);
+        phase = 'choosing';
+        enableCups(true);
         return;
     }
-
-
-    if (roundSolved) {
-        return;
+    cup.classList.add('correct');
+    message('Вот мышка! Молодец!');
+    await wait(900);
+    phase = 'solved';
+    if (currentRound === TOTAL_ROUNDS - 1) {
+        phase = 'finished';
+        finishScreen.classList.add('show');
+        document.getElementById('restartButton').focus();
+    } else {
+        nextButton.disabled = false;
+        nextButton.classList.add('show');
     }
-
-
-    if (
-        hat.classList.contains(
-            "open"
-        )
-    ) {
-        return;
-    }
-
-
-    const hatID =
-        Number(
-            hat.dataset.id
-        );
-
-
-    hat.classList.add(
-        "open"
-    );
-
-
-    /* =================================
-       ПРАВИЛЬНО
-    ================================= */
-
-    if (
-        hatID ===
-        mouseHatID
-    ) {
-
-        roundSolved =
-            true;
-
-
-        canChoose =
-            false;
-
-
-        hat.classList.add(
-            "correct"
-        );
-
-
-        await wait(
-            700
-        );
-
-
-        /* Последний раунд */
-
-        if (
-            currentRound ===
-            TOTAL_ROUNDS - 1
-        ) {
-
-            finishScreen
-                .classList
-                .add(
-                    "show"
-                );
-
-
-            return;
-        }
-
-
-        nextButton
-            .classList
-            .add(
-                "show"
-            );
-
-
-        return;
-    }
-
-
-    /* =================================
-       НЕПРАВИЛЬНО
-    ================================= */
-
-    await wait(
-        900
-    );
-
-
-    hat.classList.remove(
-        "open"
-    );
-
 }
-
-
-/* =========================================
-   ИГРАТЬ ДАЛЬШЕ
-========================================= */
-
-nextButton.addEventListener(
-    "click",
-    async () => {
-
-        if (!roundSolved) {
-            return;
-        }
-
-
-        currentRound++;
-
-
-        if (
-            currentRound >=
-            TOTAL_ROUNDS
-        ) {
-            return;
-        }
-
-
-        await startRound();
-
-    }
-);
-
-
-/* =========================================
-   СТАРТ
-========================================= */
-
-startRound();
-
+nextButton.addEventListener('click', () => {
+    if (phase !== 'solved') return;
+    currentRound++;
+    startRound();
+});
+document.getElementById('restartButton').addEventListener('click', () => {
+    if (phase !== 'finished') return;
+    finishScreen.classList.remove('show');
+    currentRound = 0;
+    startRound();
+});
+// Decode the sprites before measuring the mouse and starting the first animation.
+Promise.all(['mouse.png', 'cups/red-cup.png'].map(src => {
+    const image = new Image();
+    image.src = src;
+    return image.decode();
+})).then(startRound).catch(() => message('Не удалось загрузить рисунки. Обнови страницу.'));
 </script>
 
 </body>
